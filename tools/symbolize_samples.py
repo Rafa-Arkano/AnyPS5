@@ -454,7 +454,7 @@ def summarize(symbolizer, samples, top):
             continue
         lines.append(f"hottest by {title}:")
         for name, count in counter.most_common(top):
-            lines.append(f"  {count:8d} {100.0 * count / total if total else 0.0:5.1f}%  {name}")
+            lines.append(f"  {count:8d} {100 * count / total if total else 0.0:5.1f}%  {name}")
     return lines
 
 

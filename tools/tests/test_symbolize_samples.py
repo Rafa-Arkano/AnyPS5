@@ -1817,6 +1817,24 @@ class HeaderWindowTests(unittest.TestCase):
         later.stacks = collections.Counter({"s": 7})
         symbolize_samples.validate_window(later, earlier)
 class SampleFileLoadTests(unittest.TestCase):
+    def test_cli_percentages_remain_finite_for_large_sample_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "samples.txt"
+            for scale in (1, 10 ** 307, 10 ** 400):
+                for capture in (f"main;work {3 * scale}\nmain;idle {scale}\n",
+                                f"# {4 * scale} samples\nlibA 0x10 {3 * scale} {3 * scale}\nlibA 0x20 {scale} {scale}\n"):
+                    with self.subTest(scale_digits=len(str(scale)), capture=capture[:20]):
+                        path.write_text(capture, encoding="utf-8")
+                        result = subprocess.run(
+                            [sys.executable, symbolize_samples.__file__, str(path), "--libs", str(root)],
+                            capture_output=True, text=True, timeout=15,
+                        )
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertIn("75.0%", result.stdout)
+                        self.assertIn("25.0%", result.stdout)
+                        self.assertNotIn("inf%", result.stdout)
+
     def write(self, text):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
